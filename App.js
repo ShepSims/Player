@@ -65,51 +65,12 @@ export default function App() {
 			</View>
 
 			<TouchableOpacity
+				style={{ position: 'absolute', top: 50 }}
 				onPress={() => {
 					set(ref(db, 'users/'), 'GekkoSpiderBoy');
 				}}
 			>
 				<Text>Reset</Text>
-			</TouchableOpacity>
-
-			<TouchableOpacity
-				style={{ margin: 50 }}
-				onPress={async () => {
-					get(child(dbRef, `users/username`))
-						.then((snapshot) => {
-							if (snapshot.exists()) {
-								let user = snapshot.val();
-								console.log(user);
-							} else {
-								console.log('No data available');
-							}
-						})
-						.catch((error) => {
-							console.error(error);
-						});
-				}}
-			>
-				<Text>Get User</Text>
-			</TouchableOpacity>
-
-			<TouchableOpacity
-				style={{ margin: 50 }}
-				onPress={async () => {
-					get(child(dbRef, `users/username`))
-						.then((snapshot) => {
-							if (snapshot.exists()) {
-								let user = snapshot.val();
-								console.log(user);
-							} else {
-								console.log('No data available');
-							}
-						})
-						.catch((error) => {
-							console.error(error);
-						});
-				}}
-			>
-				<Text>Get User</Text>
 			</TouchableOpacity>
 
 			<TouchableOpacity
