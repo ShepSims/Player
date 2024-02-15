@@ -3,7 +3,6 @@ import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'reac
 
 // Modal UI for adding item attributes
 export function AddItemModal({ visible, setVisible, add }) {
-	console.log('bisi', visible);
 	const [name, setName] = useState('');
 	const [attack, setAttack] = useState('');
 	const [quantity, setQuantity] = useState('');
@@ -97,7 +96,7 @@ const styles = StyleSheet.create({
 	},
 	textStyle: {
 		color: 'white',
-		fontattack: 'bold',
+		fontWeight: 'bold',
 		textAlign: 'center',
 	},
 	modalTextInput: {
