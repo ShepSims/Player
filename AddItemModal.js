@@ -55,6 +55,18 @@ export function AddItemModal({ visible, setVisible, add }) {
 					>
 						<Text style={styles.textStyle}>Add to Backpack</Text>
 					</TouchableOpacity>
+					<TouchableOpacity
+						style={{ position: 'absolute', top: 10, right: 10, height: 25, width: 25, alignItems: 'center', justifyContent: 'center' }}
+						onPress={() => {
+							setName('');
+							setAttack('');
+							setQuantity('');
+							setReusable(false);
+							setVisible(false);
+						}}
+					>
+						<Text style={{ color: 'black', fontSize: 20 }}>x</Text>
+					</TouchableOpacity>
 				</View>
 			</View>
 		</Modal>

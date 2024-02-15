@@ -4,49 +4,11 @@ import { db } from './firebaseConfig';
 import { useEffect, useRef, useState } from 'react';
 import { AddItemModal } from './AddItemModal';
 import BackpackModal from './BackpackModal';
+import PlayerController from './PlayerController';
 
 const dbRef = ref(db);
 
 export default function App() {
-	const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
-	const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
-	const velocity = useRef({ x: 0, y: 0 });
-	const dotPosition = useRef(new Animated.ValueXY()).current; // For animated movement
-
-	const updateMovement = () => {
-		// Continuous animation logic
-		Animated.loop(
-			Animated.timing(dotPosition, {
-				toValue: { x: velocity.current.x * 1000, y: velocity.current.y * 1000 }, // Arbitrary multiplier for demonstration
-				duration: 2000, // Represents the time it takes to complete one movement cycle
-				useNativeDriver: false,
-			})
-		).start();
-	};
-
-	// Touch event handlers
-	const onGrant = (event) => {
-		const { pageX, pageY } = event.nativeEvent;
-		setStartPosition({ x: pageX, y: pageY });
-		velocity.current = { x: 0, y: 0 }; // Reset velocity
-	};
-
-	const onMove = (event) => {
-		const { pageX, pageY } = event.nativeEvent;
-		const dx = pageX - startPosition.x;
-		const dy = pageY - startPosition.y;
-		const distance = Math.sqrt(dx ** 2 + dy ** 2);
-		const angle = Math.atan2(dy, dx);
-
-		// Update velocity based on the angle and distance
-		velocity.current = {
-			x: (Math.cos(angle) * distance) / 100, // Normalize or adjust for desired speed
-			y: (Math.sin(angle) * distance) / 100,
-		};
-
-		updateMovement(); // Start or update the dot's movement based on the new velocity
-	};
-
 	const [modalVisible, setModalVisible] = useState(false);
 	const [backpackModalVisible, setBackpackModalVisible] = useState(false);
 
@@ -87,30 +49,9 @@ export default function App() {
 	}, []);
 
 	return (
-		<View
-			style={styles.container}
-			onStartShouldSetResponder={() => true}
-			onMoveShouldSetResponder={() => true}
-			onResponderGrant={onGrant}
-			onResponderMove={onMove}
-		>
-			<Animated.View
-				style={[
-					styles.dot,
-					{
-						transform: [{ translateX: dotPosition.x }, { translateY: dotPosition.y }],
-					},
-				]}
-			/>
-			{/* Optional: Display touch position for debugging */}
-			<Text style={styles.debugText}>
-				Touch: {touchPosition.x.toFixed(2)}, {touchPosition.y.toFixed(2)}
-			</Text>
-			<Text style={[styles.debugText, { top: 70 }]}>
-				Touch: {startPosition.x.toFixed(2)}, {startPosition.y.toFixed(2)}
-			</Text>
-			{/* Backpack View */}
+		<View style={styles.container}>
 			{/* Backpack Button */}
+			<PlayerController />
 			<TouchableOpacity
 				style={{ position: 'absolute', top: 50, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}
 				onPress={() => setBackpackModalVisible(true)}
@@ -181,41 +122,7 @@ export default function App() {
 			>
 				<Text>Menu</Text>
 			</TouchableOpacity>
-			{/* Controller */}
-			<View
-				style={{
-					borderWidth: 1,
-					alignItems: 'center',
-					height: 100,
-					width: 100,
-					justifyContent: 'space-between',
-					position: 'absolute',
-					bottom: 50,
-					right: 50,
-				}}
-			>
-				<TouchableOpacity
-					style={{ backgroundColor: 'black', height: 20, width: 20 }}
-					onPress={() => setPosition({ x: position.x, y: position.y - 5 })}
-				></TouchableOpacity>
-				<View style={{ flexDirection: 'row', flex: 1, alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-					<TouchableOpacity
-						style={{ backgroundColor: 'black', height: 20, width: 20 }}
-						onPress={() => setPosition({ x: position.x - 5, y: position.y })}
-					></TouchableOpacity>
-					<TouchableOpacity
-						style={{ backgroundColor: 'black', height: 20, width: 20, right: 0 }}
-						onPress={() => setPosition({ x: position.x + 5, y: position.y })}
-					></TouchableOpacity>
-				</View>
-				<TouchableOpacity
-					style={{ backgroundColor: 'black', height: 20, width: 20 }}
-					onPress={() => setPosition({ x: position.x, y: position.y + 5 })}
-				></TouchableOpacity>
-			</View>
-			<View
-				style={{ height: 20, width: 20, transform: [{ translateX: position.x }, { translateY: position.y }], backgroundColor: 'red' }}
-			></View>
+
 			<AddItemModal visible={modalVisible} setVisible={setModalVisible} add={addToBackpack} />
 			{/* Backpack Modal */}
 			<BackpackModal visible={backpackModalVisible} setVisible={setBackpackModalVisible} backpackItems={backpack} />
