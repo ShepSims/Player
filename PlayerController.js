@@ -13,6 +13,21 @@ export default function PlayerController() {
 	// Function to update the dot's position based on velocity
 	const updatePosition = () => {
 		const move = () => {
+			// Predict the next position
+			const nextX = dotPosition.x._value + velocity.current.x;
+			const nextY = dotPosition.y._value + velocity.current.y;
+
+			// Check for horizontal bounds collision
+			if (nextX <= -width / 2 || nextX >= width / 2) {
+				velocity.current.x = 0; // Stop horizontal movement or invert for a bounce effect
+			}
+
+			// Check for vertical bounds collision
+			if (nextY <= -height / 2 || nextY >= height / 2) {
+				velocity.current.y = 0; // Stop vertical movement or invert for a bounce effect
+			}
+
+			// Update position with checked or modified velocity
 			dotPosition.setValue({
 				x: dotPosition.x._value + velocity.current.x,
 				y: dotPosition.y._value + velocity.current.y,
