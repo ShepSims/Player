@@ -1,4 +1,4 @@
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { child, get, onValue, ref, set, update } from 'firebase/database';
 import { db } from './firebaseConfig';
 import { useEffect, useRef, useState } from 'react';
@@ -8,6 +8,45 @@ import BackpackModal from './BackpackModal';
 const dbRef = ref(db);
 
 export default function App() {
+	const [touchPosition, setTouchPosition] = useState({ x: 0, y: 0 });
+	const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+	const velocity = useRef({ x: 0, y: 0 });
+	const dotPosition = useRef(new Animated.ValueXY()).current; // For animated movement
+
+	const updateMovement = () => {
+		// Continuous animation logic
+		Animated.loop(
+			Animated.timing(dotPosition, {
+				toValue: { x: velocity.current.x * 1000, y: velocity.current.y * 1000 }, // Arbitrary multiplier for demonstration
+				duration: 2000, // Represents the time it takes to complete one movement cycle
+				useNativeDriver: false,
+			})
+		).start();
+	};
+
+	// Touch event handlers
+	const onGrant = (event) => {
+		const { pageX, pageY } = event.nativeEvent;
+		setStartPosition({ x: pageX, y: pageY });
+		velocity.current = { x: 0, y: 0 }; // Reset velocity
+	};
+
+	const onMove = (event) => {
+		const { pageX, pageY } = event.nativeEvent;
+		const dx = pageX - startPosition.x;
+		const dy = pageY - startPosition.y;
+		const distance = Math.sqrt(dx ** 2 + dy ** 2);
+		const angle = Math.atan2(dy, dx);
+
+		// Update velocity based on the angle and distance
+		velocity.current = {
+			x: (Math.cos(angle) * distance) / 100, // Normalize or adjust for desired speed
+			y: (Math.sin(angle) * distance) / 100,
+		};
+
+		updateMovement(); // Start or update the dot's movement based on the new velocity
+	};
+
 	const [modalVisible, setModalVisible] = useState(false);
 	const [backpackModalVisible, setBackpackModalVisible] = useState(false);
 
@@ -48,7 +87,28 @@ export default function App() {
 	}, []);
 
 	return (
-		<View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+		<View
+			style={styles.container}
+			onStartShouldSetResponder={() => true}
+			onMoveShouldSetResponder={() => true}
+			onResponderGrant={onGrant}
+			onResponderMove={onMove}
+		>
+			<Animated.View
+				style={[
+					styles.dot,
+					{
+						transform: [{ translateX: dotPosition.x }, { translateY: dotPosition.y }],
+					},
+				]}
+			/>
+			{/* Optional: Display touch position for debugging */}
+			<Text style={styles.debugText}>
+				Touch: {touchPosition.x.toFixed(2)}, {touchPosition.y.toFixed(2)}
+			</Text>
+			<Text style={[styles.debugText, { top: 70 }]}>
+				Touch: {startPosition.x.toFixed(2)}, {startPosition.y.toFixed(2)}
+			</Text>
 			{/* Backpack View */}
 			{/* Backpack Button */}
 			<TouchableOpacity
@@ -162,3 +222,24 @@ export default function App() {
 		</View>
 	);
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: '#f0f0f0', // Light background color for better visibility
+	},
+	dot: {
+		width: 20,
+		height: 20,
+		backgroundColor: 'red',
+		position: 'absolute',
+	},
+	debugText: {
+		position: 'absolute',
+		top: 50,
+		left: 10,
+		color: 'black',
+	},
+});
