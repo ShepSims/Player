@@ -37,8 +37,8 @@ export default function Controller({ right, onStateChange }) {
 		const angleDegrees = angleRadians * (180 / Math.PI); // Convert to degrees
 
 		// Normalize the values to [-1, 1] based on maxDistance for x and y
-		const normalizedX = x / maxDistance;
-		const normalizedY = y / maxDistance;
+		const normalizedX = x / 10;
+		const normalizedY = y / 10;
 
 		onStateChange({
 			x: normalizedX,
@@ -54,7 +54,7 @@ export default function Controller({ right, onStateChange }) {
 		console.log('intervalId', intervalId);
 		const id = setInterval(() => {
 			updatePosition(x, y);
-		}, 10); // Adjust interval duration as needed
+		}, 1); // Adjust interval duration as needed
 
 		setIntervalId(id);
 	};
