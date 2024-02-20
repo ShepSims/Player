@@ -15,16 +15,42 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "requireFullScreen": true,
+      "infoPlist": {
+        "EXDefaultScreenOrientationMask": "UIInterfaceOrientationMaskAll"
+      },
+      "bundleIdentifier": "com.shepsims.Player"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.shepsims.Player"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "LANDSCAPE_LEFT"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "63035396-175f-4701-8e8f-5f60543eec60"
+      }
+    },
+    "owner": "shepsims",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/63035396-175f-4701-8e8f-5f60543eec60"
     }
   }
 }
