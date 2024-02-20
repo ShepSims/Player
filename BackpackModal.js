@@ -1,18 +1,26 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
+
+const { height, width } = Dimensions.get('screen');
 
 const BackpackModal = ({ visible, setVisible, backpackItems }) => {
 	// Function to render backpack items
 	const renderBackpackItems = () => {
-		return Object.keys(backpackItems).map((key) => (
-			<Text key={key} style={styles.itemText}>
-				{key}: {JSON.stringify(backpackItems[key])}
-			</Text>
-		));
+		if (Object.keys(backpackItems)?.length > 0) {
+			return Object.keys(backpackItems).map((key) => (
+				<Text key={key} style={styles.itemText}>
+					{key}: {JSON.stringify(backpackItems[key])}
+				</Text>
+			));
+		} else {
+			console.log('no hit');
+			return <Text style={styles.itemText}>backpack empty</Text>;
+		}
 	};
 
 	return (
-		<Modal animationType='slide' transparent={true} visible={visible} onRequestClose={() => setVisible(false)}>
+		// <Modal animationType='slide' transparent={true} visible={visible} onRequestClose={() => setVisible(false)}>
+		visible ? (
 			<View style={styles.centeredView}>
 				<View style={styles.modalView}>
 					<ScrollView>{renderBackpackItems()}</ScrollView>
@@ -21,7 +29,8 @@ const BackpackModal = ({ visible, setVisible, backpackItems }) => {
 					</TouchableOpacity>
 				</View>
 			</View>
-		</Modal>
+		) : null
+		// </Modal>
 	);
 };
 
@@ -30,7 +39,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: 'center',
 		alignItems: 'center',
-		marginTop: 22,
+		position: 'absolute',
+		top: 0,
+		height: width,
+		width: height,
 	},
 	modalView: {
 		margin: 20,
