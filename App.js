@@ -1,13 +1,12 @@
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { Animated, Dimensions, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { child, get, onValue, ref, set, update } from 'firebase/database';
+import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { onValue, ref, set } from 'firebase/database';
 import { db } from './firebaseConfig';
 import { useEffect, useRef, useState } from 'react';
 import { AddItemModal } from './AddItemModal';
 import BackpackModal from './BackpackModal';
 import Controller from './Controller';
-import { Gesture, GestureDetector, GestureHandlerRootView, State, TapGestureHandler } from 'react-native-gesture-handler';
-import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { GestureHandlerRootView, State, TapGestureHandler } from 'react-native-gesture-handler';
 import { ProjectileComponent } from './Projectile';
 
 const dbRef = ref(db);
