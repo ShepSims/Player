@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		top: 0,
 		height: width,
-		width: height,
+		width: height / 2,
 	},
 	modalView: {
 		margin: 20,

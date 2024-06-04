@@ -12,7 +12,7 @@ const { width, height } = Dimensions.get('window');
  * Initializes the joystick wherever users puts their finger
  * allows dragging within a specified maximum distance,
  */
-export default function Controller({ right, onStateChange }) {
+export default function Controller({ right, onStateChange = () => {}, onEnd = () => {}, onStart = () => {} }) {
 	// Define the maximum distance the joystick can move from its center.
 	const maxDistance = 75;
 
@@ -51,17 +51,15 @@ export default function Controller({ right, onStateChange }) {
 	const startContinuousUpdate = (x, y) => {
 		if (intervalId) clearInterval(intervalId); // Clear existing interval if any
 
-		console.log('intervalId', intervalId);
 		const id = setInterval(() => {
 			updatePosition(x, y);
-		}, 1); // Adjust interval duration as needed
+		}, 16); // Adjust interval duration as needed
 
 		setIntervalId(id);
 	};
 
 	// Clear the interval on gesture end
 	const stopContinuousUpdate = () => {
-		console.log('here');
 		if (intervalId) clearInterval(intervalId);
 		setIntervalId(null);
 	};
@@ -127,9 +125,8 @@ export default function Controller({ right, onStateChange }) {
 
 			runOnJS(startContinuousUpdate)(deltaX, deltaY);
 
-			if (!right) {
-				runOnJS(onStateChange)(newState);
-			}
+			runOnJS(onStateChange)(newState);
+			runOnJS(onStart)(newState);
 		})
 		.onEnd(() => {
 			// Calculate the final rotation
@@ -142,6 +139,7 @@ export default function Controller({ right, onStateChange }) {
 				y: 0,
 				rotation: angleDegrees,
 			};
+			runOnJS(onEnd)(finalState);
 			runOnJS(onStateChange)(finalState);
 
 			// Reset joystick positions
@@ -184,7 +182,6 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		height: height,
 		width: width / 2,
-		borderWidth: 2,
 		position: 'absolute',
 		top: 0,
 	},

@@ -5,11 +5,10 @@ import { db } from './firebaseConfig';
 import { useEffect, useRef, useState } from 'react';
 import { AddItemModal } from './AddItemModal';
 import BackpackModal from './BackpackModal';
-import PlayerController from './PlayerController';
-import DualTouchAreas from './DualTouchAreas';
 import Controller from './Controller';
 import { Gesture, GestureDetector, GestureHandlerRootView, State, TapGestureHandler } from 'react-native-gesture-handler';
 import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { ProjectileComponent } from './Projectile';
 
 const dbRef = ref(db);
 
@@ -26,12 +25,64 @@ export default function App() {
 	const [modalVisible, setModalVisible] = useState(false);
 	const [backpackModalVisible, setBackpackModalVisible] = useState(false);
 
-	const translateX = useSharedValue(0);
-	const translateY = useSharedValue(0);
-	const inputRef = useRef(null);
 	const [backpack, setBackpack] = useState({});
 
-	const [circleStyle, setCircleStyle] = useState({ x: 0, y: 0, rotation: 0 });
+	const [player1, setPlayer1] = useState({ x: 0, y: 0, rotation: 0 });
+	const [gun, setGun] = useState({ x: 0, y: 0, rotation: 0 });
+	const [aimVisible, setAimVisible] = useState(true);
+	const [sight, setSight] = useState({});
+
+	const [projectile, setProjectile] = useState({
+		active: false,
+		x: 0,
+		y: 0,
+		rotation: 0,
+	});
+
+	const [projectiles, setProjectiles] = useState([{}]);
+
+	const [attackAnimation, setAttackAnimation] = useState({
+		visible: false,
+		x: 0,
+		y: 0,
+		rotation: 0,
+	});
+	const attackOpacity = useRef(new Animated.Value(0)).current;
+
+	const [enemies, setEnemies] = useState([
+		{ id: 1, x: width / 2, y: height / 2, size: 25 },
+		{ id: 2, x: width / 2 + 100, y: height / 3, size: 50 },
+		{ id: 3, x: width / 2 - 100, y: height / 3, size: 10 },
+		// Add more enemies as needed
+	]);
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setProjectiles((prevProjectiles) => {
+				return prevProjectiles.map((proj) => {
+					if (!proj.active) return proj;
+					const speed = 5;
+					const angleRad = (proj.rotation * Math.PI) / 180;
+					const nextX = proj.x + Math.cos(angleRad) * speed;
+					const nextY = proj.y + Math.sin(angleRad) * speed;
+
+					const hitEnemy = enemies.find((enemy) => {
+						const distance = Math.sqrt((nextX - enemy.x - enemy.size / 2) ** 2 + (nextY - enemy.y - enemy.size / 2) ** 2);
+						return distance < enemy.size / 2;
+					});
+
+					if (hitEnemy) {
+						console.log(`Hit enemy ${hitEnemy.id}`);
+						setEnemies((enemies) => enemies.filter((enemy) => enemy.id !== hitEnemy.id));
+						return { ...proj, active: false };
+					}
+
+					return { ...proj, x: nextX, y: nextY };
+				});
+			});
+		}, 16); // ~60fps
+
+		return () => clearInterval(interval);
+	}, [enemies]);
 
 	const addToBackpack = (item) => {
 		console.log('item: ', item);
@@ -66,21 +117,217 @@ export default function App() {
 
 	// Function to update the position of the circle
 
-	const handleControllerStateChange = (newState) => {
-		// console.log('Controller state changed:', newState, translateX.value);
-		setCircleStyle((oldState) => {
-			return { x: oldState.x + newState.x, y: oldState.y + newState.y, rotation: newState.rotation };
+	const onEndRightController = (newState) => {
+		setAimVisible(true);
+		setProjectiles((oldState) => {
+			return [
+				...oldState,
+				{
+					active: true,
+					x: player1.x, // Assuming you have player1's position
+					y: player1.y,
+					rotation: newState.rotation,
+				},
+			];
 		});
-		// translateY.value = newState.y;
 	};
+
+	const onStartRightController = (newState) => {
+		setAimVisible(true);
+	};
+	const handleLeftController = (newState) => {
+		setPlayer1((oldState) => {
+			// Calculate new X and Y ensuring they are within bounds
+			const newX = Math.min(Math.max(oldState.x + newState.x, 0), width - 100);
+			const newY = Math.min(Math.max(oldState.y + newState.y, 0), height - 100);
+
+			return {
+				...oldState,
+				x: newX,
+				y: newY,
+				rotation: newState.rotation,
+			};
+		});
+	};
+
+	const handleRightController = (newState) => {
+		setGun((oldState) => {
+			return {
+				...oldState,
+				rotation: newState.rotation,
+			};
+		});
+
+		if (aimVisible) {
+			setSight({
+				rotation: newState.rotation,
+			});
+		}
+	};
+
+	const requestRef = useRef(null);
+
+	useEffect(() => {
+		if (projectile.active) {
+			const animateProjectile = () => {
+				setProjectile((prev) => {
+					const speed = 1;
+					const angleRad = (prev.rotation * Math.PI) / 180;
+					return {
+						...prev,
+						x: prev.x + Math.cos(angleRad) * speed,
+						y: prev.y + Math.sin(angleRad) * speed,
+					};
+				});
+				requestRef.current = requestAnimationFrame(animateProjectile);
+			};
+			requestRef.current = requestAnimationFrame(animateProjectile);
+			return () => cancelAnimationFrame(requestRef.current);
+		}
+	}, [projectile.active]);
+	const handleMeleeAttack = () => {
+		const attackDistance = 50;
+		const attackWidth = 50;
+		const playerDirectionRad = (player1.rotation * Math.PI) / 180;
+
+		const startX = player1.x;
+		const startY = player1.y;
+
+		const centerX = startX + (Math.cos(playerDirectionRad) * attackDistance) / 2;
+		const centerY = startY + (Math.sin(playerDirectionRad) * attackDistance) / 2;
+
+		setAttackAnimation({
+			visible: true,
+			x: centerX - attackWidth / 2,
+			y: centerY - attackDistance / 2,
+			rotation: player1.rotation,
+		});
+
+		Animated.sequence([
+			Animated.timing(attackOpacity, {
+				toValue: 1,
+				duration: 100,
+				useNativeDriver: true,
+			}),
+			Animated.timing(attackOpacity, {
+				toValue: 0,
+				duration: 100,
+				useNativeDriver: true,
+			}),
+		]).start(() => {
+			setAttackAnimation((prev) => ({ ...prev, visible: false }));
+		});
+
+		const hitEnemies = enemies.filter((enemy) => {
+			const enemyCenterX = enemy.x + enemy.size / 2;
+			const enemyCenterY = enemy.y + enemy.size / 2;
+
+			const withinX = enemyCenterX >= startX && enemyCenterX <= centerX;
+			const withinY = enemyCenterY >= startY && enemyCenterY <= centerY;
+
+			return withinX && withinY;
+		});
+
+		if (hitEnemies.length > 0) {
+			console.log(`Hit ${hitEnemies.length} enemies with melee!`);
+			setEnemies((enemies) => enemies.filter((enemy) => !hitEnemies.includes(enemy)));
+		}
+	};
+
+	const handleFireAttack = () => {
+		const attackDistance = 50;
+		const attackWidth = 50;
+		const playerDirectionRad = (player1.rotation * Math.PI) / 180;
+
+		const startX = player1.x;
+		const startY = player1.y;
+
+		const centerX = startX + (Math.cos(playerDirectionRad) * attackDistance) / 2;
+		const centerY = startY + (Math.sin(playerDirectionRad) * attackDistance) / 2;
+
+		setAttackAnimation({
+			visible: true,
+			x: centerX - attackWidth / 2,
+			y: centerY - attackDistance / 2,
+			rotation: player1.rotation,
+		});
+
+		Animated.sequence([
+			Animated.timing(attackOpacity, {
+				toValue: 1,
+				duration: 100,
+				useNativeDriver: true,
+			}),
+			Animated.timing(attackOpacity, {
+				toValue: 0,
+				duration: 100,
+				useNativeDriver: true,
+			}),
+		]).start(() => {
+			setAttackAnimation((prev) => ({ ...prev, visible: false }));
+		});
+
+		const hitEnemies = enemies.filter((enemy) => {
+			const enemyCenterX = enemy.x + enemy.size / 2;
+			const enemyCenterY = enemy.y + enemy.size / 2;
+
+			const withinX = enemyCenterX >= startX && enemyCenterX <= centerX;
+			const withinY = enemyCenterY >= startY && enemyCenterY <= centerY;
+
+			return withinX && withinY;
+		});
+
+		if (hitEnemies.length > 0) {
+			console.log(`Hit ${hitEnemies.length} enemies with melee!`);
+			setEnemies((enemies) => enemies.filter((enemy) => !hitEnemies.includes(enemy)));
+		}
+	};
+
+	const [isFireAttackActive, setIsFireAttackActive] = useState(false);
+
+	useEffect(() => {
+		let interval;
+		if (isFireAttackActive) {
+			interval = setInterval(handleFireAttack, 100);
+		} else {
+			clearInterval(interval);
+		}
+		return () => clearInterval(interval);
+	}, [isFireAttackActive]);
 
 	return (
 		<GestureHandlerRootView>
 			<View style={styles.container}>
 				{/* Backpack Button */}
 				{/* <PlayerController /> */}
-				<Controller right={true}></Controller>
-				<Controller onStateChange={handleControllerStateChange}></Controller>
+				<Controller
+					right={true}
+					onStateChange={handleRightController}
+					onEnd={onEndRightController}
+					onStart={onStartRightController}
+				></Controller>
+				<Controller onStateChange={handleLeftController}></Controller>
+				{enemies.map((enemy) => (
+					<View
+						key={enemy.id}
+						style={{
+							position: 'absolute',
+							left: enemy.x,
+							top: enemy.y,
+							alignItems: 'center',
+							justifyContent: 'center',
+						}}
+					>
+						<View
+							style={{
+								width: enemy.size,
+								height: enemy.size,
+								backgroundColor: 'blue', // Example color
+								borderRadius: enemy.size / 2,
+							}}
+						></View>
+					</View>
+				))}
 
 				{/* <TouchableOpacity
 					style={{ position: 'absolute', top: 50, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}
@@ -92,12 +339,58 @@ export default function App() {
 				<TapGestureHandler
 					onHandlerStateChange={({ nativeEvent }) => {
 						if (nativeEvent.state === State.END) {
-							setBackpackModalVisible(true);
+							setBackpackModalVisible(!backpackModalVisible);
 						}
 					}}
 				>
 					<View style={{ position: 'absolute', top: 50, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}>
 						<Text style={styles.buttonText}>Backpack</Text>
+					</View>
+				</TapGestureHandler>
+				<TapGestureHandler
+					onHandlerStateChange={({ nativeEvent }) => {
+						console.log('FIRE');
+						if (nativeEvent.state === State.END) {
+							console.log('playerX, ', player1.x);
+							setProjectile({
+								active: true,
+								x: player1.x, // Assuming you have player1's position
+								y: player1.y,
+								rotation: player1.rotation,
+							});
+						}
+					}}
+				>
+					<View style={{ position: 'absolute', top: height / 2, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}>
+						<Text style={styles.buttonText}>Fire!</Text>
+					</View>
+				</TapGestureHandler>
+
+				<TapGestureHandler
+					onHandlerStateChange={({ nativeEvent }) => {
+						if (nativeEvent.state === State.END) {
+							handleMeleeAttack();
+						}
+					}}
+				>
+					<View style={{ position: 'absolute', top: height / 2 + 50, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}>
+						<Text style={styles.buttonText}>Melee!</Text>
+					</View>
+				</TapGestureHandler>
+
+				<TapGestureHandler
+					onHandlerStateChange={({ nativeEvent }) => {
+						if (nativeEvent.state === State.BEGAN) {
+							console.log('begin');
+							setIsFireAttackActive(true);
+						} else if (nativeEvent.state === State.END) {
+							console.log('end');
+							setIsFireAttackActive(false);
+						}
+					}}
+				>
+					<View style={{ position: 'absolute', top: height / 2 + 100, right: 0, margin: 10, padding: 10, backgroundColor: '#2196F3' }}>
+						<Text style={styles.buttonText}>Flame!</Text>
 					</View>
 				</TapGestureHandler>
 
@@ -131,9 +424,58 @@ export default function App() {
 				{/* Backpack Modal */}
 				<BackpackModal visible={backpackModalVisible} setVisible={setBackpackModalVisible} backpackItems={backpack} />
 				<Animated.Image
-					style={[styles.circle, { left: circleStyle.x, top: circleStyle.y, transform: [{ rotate: `${circleStyle.rotation}deg` }] }]}
+					style={[styles.circle, { left: player1.x - 50, top: player1.y - 50, transform: [{ rotate: `${player1.rotation}deg` }] }]}
 					source={require('./assets/ship.png')}
 				></Animated.Image>
+				<Animated.Image
+					style={[
+						styles.circle,
+						{
+							left: player1.x - 25,
+							top: player1.y - 25,
+							transform: [{ rotate: `${gun.rotation}deg` }],
+							width: 50,
+							height: 50,
+						},
+					]}
+					source={require('./assets/disc.png')}
+				></Animated.Image>
+
+				{/* Aim / Sight */}
+				<View
+					style={[
+						{
+							left: player1.x,
+							top: player1.y - 50,
+							transform: [{ rotate: `${gun.rotation + 90}deg` }, { translateY: -50 }],
+							width: 1,
+							height: 100,
+							backgroundColor: 'gray',
+							position: 'absolute',
+						},
+					]}
+				></View>
+				{attackAnimation.visible ? (
+					<Animated.View
+						style={{
+							position: 'absolute',
+							left: attackAnimation.x,
+							top: attackAnimation.y,
+							width: 100, // or any appropriate size
+							height: 50, // or any appropriate size
+							backgroundColor: 'black', // Choose an appropriate color
+							// opacity: attackOpacity,
+							transform: [
+								// { translateX: -10 }, // Adjust based on size for centering
+								// { translateY: -2.5 }, // Adjust based on size for centering
+								{ rotate: `${attackAnimation.rotation}deg` },
+							],
+						}}
+					/>
+				) : null}
+				<ProjectileComponent projectile={projectile} />
+
+				{projectiles.map((projectile) => projectile.active && <ProjectileComponent key={projectile.id} projectile={projectile} />)}
 			</View>
 		</GestureHandlerRootView>
 	);
@@ -152,9 +494,7 @@ const styles = StyleSheet.create({
 		width: 100,
 		height: 100,
 		resizeMode: 'contain',
-		// backgroundColor: 'black',
-		// position: 'absolute',
-		borderWidth: 1,
+		position: 'absolute',
 	},
 	dot: {
 		width: 20,
